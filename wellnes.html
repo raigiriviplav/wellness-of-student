@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Student Wellness & Mental Health Monitoring</title>
+	<style>
+		body {
+			font-family: 'Segoe UI', Arial, sans-serif;
+			background: linear-gradient(120deg, #e0eafc, #cfdef3);
+			margin: 0;
+			padding: 0;
+			display: flex;
+			min-height: 100vh;
+		}
+		#sidebar {
+			width: 220px;
+			background: #4f8cff;
+			color: white;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 2rem 0 1rem 0;
+			box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+		}
+		#sidebar h2 {
+			margin-bottom: 2rem;
+			font-size: 1.3rem;
+			letter-spacing: 1px;
+		}
+		.sidebar-btn {
+			background: none;
+			border: none;
+			color: white;
+			font-size: 1.1rem;
+			padding: 0.7rem 1.2rem;
+			margin-bottom: 1rem;
+			cursor: pointer;
+			border-radius: 6px;
+			width: 80%;
+			text-align: left;
+			transition: background 0.2s;
+		}
+		.sidebar-btn.active, .sidebar-btn:hover {
+			background: #3572d6;
+		}
+		#main-content {
+			flex: 1;
+			padding: 2rem;
+			background: linear-gradient(120deg, #e0eafc, #cfdef3);
+			overflow-y: auto;
+		}
+		.card {
+			background: white;
+			border-radius: 12px;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+			padding: 2rem;
+			margin-bottom: 2rem;
+		}
+		.card h2 {
+			color: #4f8cff;
+		}
+		.mood-btn, #custom-mood-input {
+			font-size: 2rem;
+			background: #f0f4ff;
+			border: none;
+			border-radius: 50%;
+			width: 60px;
+			height: 60px;
+			cursor: pointer;
+			transition: background 0.2s;
+			margin: 0.5rem;
+		}
+		.mood-btn:hover {
+			background: #d0e2ff;
+		}
+		.mood-btn.animated {
+			animation: pop 0.3s;
+		}
+		@keyframes pop {
+			0% { transform: scale(1); }
+			50% { transform: scale(1.3); }
+			100% { transform: scale(1); }
+		}
+		#modal-bg {
+			position: fixed;
+			top: 0; left: 0; right: 0; bottom: 0;
+			background: rgba(0,0,0,0.2);
+			display: none;
+			justify-content: center;
+			align-items: center;
+			z-index: 1000;
+		}
+		.modal {
+			background: white;
+			border-radius: 12px;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+			padding: 2rem;
+			min-width: 320px;
+			max-width: 90vw;
+			position: relative;
+		}
+		.modal-close {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			color: #4f8cff;
+		}
+		.success {
+			color: green;
+			margin-top: 1rem;
+		}
+		.dashboard {
+			background: #f0f4ff;
+			border-radius: 8px;
+			padding: 1rem;
+			margin-top: 1rem;
+		}
+		canvas {
+			max-width: 100%;
+		}
+		@gmedia (max-width: 900px) {
+			#sidebar { width: 60px; }
+			#sidebar h2 { display: none; }
+			.sidebar-btn { font-size: 0; width: 40px; padding: 0.7rem 0; }
+			.sidebar-btn::before {
+				font-size: 1.5rem;
+				content: attr(data-icon);
+				display: block;
+				text-align: center;
+			}
+			#main-content { padding: 1rem; }
+		}
+	</style>
+</head>
+<body>
+	<div id="sidebar">
+		<h2>Wellness App</h2>
+		<button class="sidebar-btn active" id="nav-mood" onclick="showSection('mood')" data-icon="😊">Mood</button>
+		<button class="sidebar-btn" id="nav-dashboard" onclick="showSection('dashboard')" data-icon="📈">Dashboard</button>
+		<button class="sidebar-btn" id="nav-sentiment" onclick="showSection('sentiment')" data-icon="💡">Sentiment</button>
+		<button class="sidebar-btn" id="nav-resources" onclick="showSection('resources')" data-icon="📚">Resources</button>
+		<button class="sidebar-btn" id="nav-contact" onclick="showSection('contact')" data-icon="📞">Contact</button>
+	</div>
+	<div id="main-content">
+		<div id="section-mood" class="card">
+			<div id="greeting"></div>
+			<div id="quote"></div>
+			<h2>Daily Mood & Wellness Check-In</h2>
+			<button onclick="openModal('mood-modal')">Share Mood</button>
+			<div id="mood-message"></div>
+		</div>
+		<div id="section-dashboard" class="card" style="display:none;">
+			<h2>Wellness Trends Dashboard</h2>
+			<canvas id="moodChart" height="120"></canvas>
+		</div>
+		<div id="section-sentiment" class="card" style="display:none;">
+			<h2>Sentiment Analysis & Recommendations</h2>
+			<button onclick="openModal('feeling-modal')">Describe Feelings</button>
+			<div id="sentiment-result">Share your mood to get insights and tips!</div>
+			<div id="recommendations"></div>
+		</div>
+		<div id="section-resources" class="card" style="display:none;">
+			<h2>Wellness Resources</h2>
+			<ul>
+				<li><a href="https://www.mind.org.uk/" target="_blank">Mind: Mental Health Support</a></li>
+				<li><a href="https://www.headspace.com/" target="_blank">Headspace: Meditation & Mindfulness</a></li>
+				<li><a href="https://www.studenthealth.gov/" target="_blank">Student Health Portal</a></li>
+			</ul>
+		</div>
+		<div id="section-contact" class="card" style="display:none;">
+			<h2>Contact & Support</h2>
+			<form id="contact-form" onsubmit="return submitContact(event)">
+				<label for="name">Name:</label><br>
+				<input type="text" id="name" name="name" required><br><br>
+				<label for="message">Message:</label><br>
+				<textarea id="message" name="message" rows="3" required></textarea><br><br>
+				<button type="submit">Send</button>
+			</form>
+			<div id="contact-success"></div>
+		</div>
+	</div>
+	<!-- Modal Background -->
+	<div id="modal-bg">
+		<!-- Mood Modal -->
+		<div class="modal" id="mood-modal" style="display:none;">
+			<button class="modal-close" onclick="closeModal()">×</button>
+			<h3>How are you feeling today?</h3>
+			<div class="mood-tracker" id="mood-tracker">
+				<button class="mood-btn" onclick="submitMood('😊', 8)">😊</button>
+				<button class="mood-btn" onclick="submitMood('🙂', 6)">🙂</button>
+				<button class="mood-btn" onclick="submitMood('😐', 4)">😐</button>
+				<button class="mood-btn" onclick="submitMood('😔', 2)">😔</button>
+				<button class="mood-btn" onclick="submitMood('😢', 1)">😢</button>
+			</div>
+			<div id="custom-mood-section">
+				<label for="custom-mood-input">Add your own mood emoji:</label>
+				<input type="text" id="custom-mood-input" maxlength="2" placeholder="😎">
+				<button onclick="addCustomMood()">Add</button>
+			</div>
+		</div>
+		<!-- Feeling Modal -->
+		<div class="modal" id="feeling-modal" style="display:none;">
+			<button class="modal-close" onclick="closeModal()">×</button>
+			<h3>Describe your feelings today</h3>
+			<input type="text" id="feeling-input" placeholder="Describe your feelings...">
+			<button id="feeling-analyze-btn" onclick="analyzeFeeling()">Analyze</button>
+			<div id="feeling-result"></div>
+		</div>
+	</div>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script>
+		// Greeting and motivational quote
+		const greetings = [
+			"Good morning! Ready for a positive day?",
+			"Good afternoon! Keep going strong!",
+			"Good evening! Reflect and recharge.",
+			"Hello! Take a moment for yourself."
+		];
+		const quotes = [
+			"“Every day may not be good, but there is something good in every day.”",
+			"“You are stronger than you think.”",
+			"“Self-care is how you take your power back.”",
+			"“Small steps every day lead to big changes.”",
+			"“Your feelings are valid.”"
+		];
+		function setGreetingAndQuote() {
+			const hour = new Date().getHours();
+			let greeting = greetings[3];
+			if (hour < 12) greeting = greetings[0];
+			else if (hour < 17) greeting = greetings[1];
+			else if (hour < 21) greeting = greetings[2];
+			document.getElementById('greeting').textContent = greeting;
+			document.getElementById('quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+		}
+		setGreetingAndQuote();
+
+		// Sidebar navigation
+		function showSection(section) {
+			const sections = ['mood', 'dashboard', 'sentiment', 'resources', 'contact'];
+			sections.forEach(s => {
+				document.getElementById('section-' + s).style.display = (s === section) ? '' : 'none';
+				document.getElementById('nav-' + s).classList.toggle('active', s === section);
+			});
+		}
+
+		// Modal logic
+		function openModal(modalId) {
+			document.getElementById('modal-bg').style.display = 'flex';
+			document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+			document.getElementById(modalId).style.display = 'block';
+		}
+		function closeModal() {
+			document.getElementById('modal-bg').style.display = 'none';
+			document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+		}
+
+		// Animate mood button
+		document.addEventListener('DOMContentLoaded', function() {
+			document.querySelectorAll('.mood-btn').forEach(btn => {
+				btn.addEventListener('click', function() {
+					btn.classList.add('animated');
+					setTimeout(() => btn.classList.remove('animated'), 300);
+				});
+			});
+		});
+
+		// Add custom mood emoji button
+		function addCustomMood() {
+			const emoji = document.getElementById('custom-mood-input').value.trim();
+			if (!emoji) return;
+			const tracker = document.getElementById('mood-tracker');
+			const btn = document.createElement('button');
+			btn.className = 'mood-btn';
+			btn.textContent = emoji;
+			btn.onclick = function() {
+				submitMood(emoji, 5); // Neutral score for custom
+				btn.classList.add('animated');
+				setTimeout(() => btn.classList.remove('animated'), 300);
+			};
+			tracker.appendChild(btn);
+			document.getElementById('custom-mood-input').value = '';
+		}
+
+		// Mood data storage (local for demo)
+		let moodData = JSON.parse(localStorage.getItem('moodData') || '[]');
+
+		function submitMood(mood, score) {
+			const today = new Date().toLocaleDateString();
+			moodData.push({ date: today, mood, score });
+			localStorage.setItem('moodData', JSON.stringify(moodData));
+			document.getElementById('mood-message').innerHTML = `<span class='success'>Thank you for sharing your mood: ${mood}</span>`;
+			analyzeSentiment(score);
+			showRecommendations(score);
+			updateChart();
+			closeModal();
+		}
+
+		function analyzeSentiment(score) {
+			let sentiment = '';
+			if (score >= 7) sentiment = 'Positive';
+			else if (score >= 5) sentiment = 'Neutral';
+			else sentiment = 'Negative';
+			document.getElementById('sentiment-result').innerHTML = `Emotional State: <b>${sentiment}</b>`;
+		}
+
+		function showRecommendations(score) {
+			let rec = '';
+			if (score >= 7) {
+				rec = 'Keep up the positive mood! Try sharing your happiness with friends or journaling.';
+			} else if (score >= 5) {
+				rec = 'Consider a short walk, some deep breathing, or listening to music to boost your mood.';
+			} else {
+				rec = 'It’s okay to feel down. Reach out to a counselor, talk to someone you trust, or try a mindfulness exercise.';
+			}
+			document.getElementById('recommendations').innerHTML = `<b>Recommendation:</b> ${rec}`;
+		}
+
+		function updateChart() {
+			const ctx = document.getElementById('moodChart').getContext('2d');
+			const dates = moodData.map(m => m.date);
+			const scores = moodData.map(m => m.score);
+			if (window.moodChartInstance) window.moodChartInstance.destroy();
+			window.moodChartInstance = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: dates,
+					datasets: [{
+						label: 'Mood Score',
+						data: scores,
+						borderColor: '#4f8cff',
+						backgroundColor: 'rgba(79,140,255,0.1)',
+						fill: true,
+						tension: 0.3
+					}]
+				},
+				options: {
+					scales: {
+						y: { min: 0, max: 10 }
+					}
+				}
+			});
+		}
+
+		// Feeling sentiment analysis (simple)
+		function analyzeFeeling() {
+			const text = document.getElementById('feeling-input').value.trim();
+			if (!text) {
+				document.getElementById('feeling-result').textContent = "Please describe your feelings.";
+				return;
+			}
+			const positiveWords = ["happy", "great", "good", "excited", "joy", "love", "awesome", "calm"];
+			const negativeWords = ["sad", "down", "bad", "tired", "anxious", "angry", "upset", "worried"];
+			let score = 0;
+			const words = text.toLowerCase().split(/\s+/);
+			words.forEach(w => {
+				if (positiveWords.includes(w)) score++;
+				if (negativeWords.includes(w)) score--;
+			});
+			let sentiment = "Neutral";
+			if (score > 0) sentiment = "Positive";
+			else if (score < 0) sentiment = "Negative";
+			document.getElementById('feeling-result').innerHTML = `Sentiment: <b>${sentiment}</b>`;
+		}
+
+		function submitContact(event) {
+			event.preventDefault();
+			document.getElementById('contact-success').innerHTML = "<span class='success'>Your message has been sent. Thank you!</span>";
+			document.getElementById('contact-form').reset();
+			return false;
+		}
+
+		// Initial chart load
+		updateChart();
+	</script>
+</body>
+</html>
